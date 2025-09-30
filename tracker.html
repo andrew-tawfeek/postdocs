@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Postdoc Application Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .header-title h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-title p {
+            color: #6b7280;
+        }
+
+        .header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background-color: #4b5563;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #374151;
+        }
+
+        .btn-success {
+            background-color: #16a34a;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #15803d;
+        }
+
+        .btn-purple {
+            background-color: #9333ea;
+            color: white;
+        }
+
+        .btn-purple:hover {
+            background-color: #7e22ce;
+        }
+
+        .btn-indigo {
+            background-color: #4f46e5;
+            color: white;
+        }
+
+        .btn-indigo:hover {
+            background-color: #4338ca;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid;
+        }
+
+        .stat-card.total { border-left-color: #2563eb; }
+        .stat-card.submitted { border-left-color: #16a34a; }
+        .stat-card.in-progress { border-left-color: #eab308; }
+        .stat-card.pending { border-left-color: #6b7280; }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .search-bar {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .search-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            position: relative;
+            min-width: 200px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+
+        select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .application-card {
+            background: white;
+            border-radius: 0.5rem;
+            border: 2px solid #e5e7eb;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: box-shadow 0.2s;
+        }
+
+        .application-card:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .application-card.urgent {
+            border-color: #fca5a5;
+        }
+
+        .application-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .application-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid;
+        }
+
+        .status-pending {
+            background-color: #f3f4f6;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+
+        .status-in-progress {
+            background-color: #fef3c7;
+            color: #92400e;
+            border-color: #fcd34d;
+        }
+
+        .status-submitted {
+            background-color: #d1fae5;
+            color: #065f46;
+            border-color: #6ee7b7;
+        }
+
+        .info-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .info-item.urgent {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .progress-section {
+            background: #eff6ff;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .progress-count {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .progress-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .progress-item {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .progress-item.complete {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .progress-item.incomplete {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 1rem;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            max-width: 1024px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.25rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .checkbox-label:hover {
+            background: #f9fafb;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .edit-form {
+            background: #f9fafb;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-section {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 1rem;
+            margin-top: 1rem;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #374151;
+        }
+
+        .icon {
+            width: 1rem;
+            height: 1rem;
+            display: inline-block;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .empty-state p {
+            color: #6b7280;
+            font-size: 1.125rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">
+                <h1>Postdoc Application Tracker</h1>
+                <p>Manage and track your postdoctoral applications</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="showSettings()">
+                    <span class="icon">⚙️</span> Settings
+                </button>
+                <button class="btn btn-indigo" onclick="document.getElementById('importFile').click()">
+                    <span class="icon">📥</span> Import Data
+                </button>
+                <input type="file" id="importFile" accept=".json" onchange="importData(event)" style="display: none;">
+                <button class="btn btn-purple" onclick="exportData()">
+                    <span class="icon">📤</span> Export Data
+                </button>
+                <button class="btn btn-success" onclick="showAddForm()">
+                    <span class="icon">➕</span> Add Application
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-label">Total Applications</div>
+                <div class="stat-value" id="stat-total">0</div>
+            </div>
+            <div class="stat-card submitted">
+                <div class="stat-label">Submitted</div>
+                <div class="stat-value" id="stat-submitted">0</div>
+            </div>
+            <div class="stat-card in-progress">
+                <div class="stat-label">In Progress</div>
+                <div class="stat-value" id="stat-in-progress">0</div>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-label">Pending</div>
+                <div class="stat-value" id="stat-pending">0</div>
+            </div>
+        </div>
+
+        <div class="search-bar">
+            <div class="search-controls">
+                <div class="search-input-wrapper">
+                    <span class="search-icon icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search by school, position, or location...">
+                </div>
+                <select id="filterType">
+                    <option value="all">All Status</option>
+                </select>
+                <select id="sortBy">
+                    <option value="deadline">Sort by Deadline</option>
+                    <option value="school">Sort by School</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="addFormContainer"></div>
+
+        <div id="applicationsList"></div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Settings</h2>
+                <button class="btn btn-secondary" onclick="closeSettings()">✕</button>
+            </div>
+            <div id="settingsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        let applications = [];
+
+        let config = {
+            referenceWriters: ['henrich', 'sandor', 'farbod', 'hoffman', 'leiblich', 'branden'],
+            materials: ['cover', 'cv', 'research', 'teaching', 'diversity', 'pubs'],
+            statusOptions: ['pending', 'in-progress', 'submitted'],
+            customFields: [],
+            customChecklists: []
+        };
+
+        let editingId = null;
+        let searchTerm = '';
+        let filterType = 'all';
+        let sortBy = 'deadline';
+        let hasUnsavedChanges = false;
+
+        // Initialize the app
+        function init() {
+            setupEventListeners();
+            updateApplicationsData();
+            renderApplications();
+            updateStats();
+            updateFilterOptions();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                searchTerm = e.target.value;
+                renderApplications();
+            });
+
+            document.getElementById('filterType').addEventListener('change', (e) => {
+                filterType = e.target.value;
+                renderApplications();
+            });
+
+            document.getElementById('sortBy').addEventListener('change', (e) => {
+                sortBy = e.target.value;
+                renderApplications();
+            });
+
+            window.addEventListener('beforeunload', (e) => {
+                if (hasUnsavedChanges || applications.length > 0) {
+                    e.preventDefault();
+                    e.returnValue = 'You have unsaved data! Please export your data before closing to avoid losing your work.';
+                    return e.returnValue;
+                }
+            });
+        }
+
+        function updateApplicationsData() {
+            applications = applications.map(app => {
+                const refs = {};
+                config.referenceWriters.forEach(writer => {
+                    refs[writer] = app.refs && app.refs[writer] ? app.refs[writer] : false;
+                });
+                const materials = {};
+                config.materials.forEach(material => {
+                    materials[material] = app.materials && app.materials[material] ? app.materials[material] : false;
+                });
+                const customChecklistValues = {};
+                config.customChecklists.forEach(checklist => {
+                    customChecklistValues[checklist.id] = customChecklistValues[checklist.id] || {};
+                    checklist.items.forEach(item => {
+                        customChecklistValues[checklist.id][item] = app.customChecklistValues && app.customChecklistValues[checklist.id] && app.customChecklistValues[checklist.id][item] ? app.customChecklistValues[checklist.id][item] : false;
+                    });
+                });
+                return { ...app, refs, materials, customChecklistValues };
+            });
+        }
+
+        function updateFilterOptions() {
+            const filterSelect = document.getElementById('filterType');
+            filterSelect.innerHTML = '<option value="all">All Status</option>';
+            config.statusOptions.forEach(status => {
+                const option = document.createElement('option');
+                option.value = status;
+                option.textContent = status.replace(/-/g, ' ');
+                filterSelect.appendChild(option);
+            });
+        }
+
+        function getDaysUntilDeadline(deadline) {
+            if (!deadline) return null;
+            const today = new Date();
+            const deadlineDate = new Date(deadline);
+            const diffTime = deadlineDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+        }
+
+        function getFilteredApplications() {
+            let filtered = applications.filter(app => {
+                const matchesSearch = searchTerm === '' || 
+                    app.school.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    app.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (app.location && app.location.toLowerCase().includes(searchTerm.toLowerCase()));
+                
+                const matchesFilter = filterType === 'all' || app.status === filterType;
+                
+                return matchesSearch && matchesFilter;
+            });
+
+            filtered.sort((a, b) => {
+                if (sortBy === 'deadline') {
+                    if (!a.deadline) return 1;
+                    if (!b.deadline) return -1;
+                    return new Date(a.deadline) - new Date(b.deadline);
+                } else if (sortBy === 'school') {
+                    return a.school.localeCompare(b.school);
+                }
+                return 0;
+            });
+
+            return filtered;
+        }
+
+        function updateStats() {
+            document.getElementById('stat-total').textContent = applications.length;
+            document.getElementById('stat-submitted').textContent = applications.filter(a => a.status === 'submitted').length;
+            document.getElementById('stat-in-progress').textContent = applications.filter(a => a.status === 'in-progress').length;
+            document.getElementById('stat-pending').textContent = applications.filter(a => a.status === 'pending').length;
+        }
+
+        function renderApplications() {
+            const container = document.getElementById('applicationsList');
+            const filtered = getFilteredApplications();
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No applications found matching your criteria</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(app => {
+                const daysLeft = getDaysUntilDeadline(app.deadline);
+                const isUrgent = daysLeft !== null && daysLeft <= 14;
+                const isEditing = editingId === app.id;
+
+                if (isEditing) {
+                    return renderEditForm(app);
+                }
+
+                return `
+                    <div class="application-card ${isUrgent ? 'urgent' : ''}">
+                        <div class="application-header">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                    <h3 class="application-title">${app.school}</h3>
+                                    <span class="status-badge status-${app.status}">
+                                        ${getStatusIcon(app.status)} ${app.status.replace(/-/g, ' ')}
+                                    </span>
+                                </div>
+                                <p style="color: #374151; font-weight: 500; margin-bottom: 0.5rem;">${app.position}</p>
+                                ${app.title ? `<p style="color: #6b7280; font-size: 0.875rem; font-style: italic; margin-bottom: 0.5rem;">${app.title}</p>` : ''}
+                                
+                                <div class="info-row">
+                                    ${app.location ? `<div class="info-item"><span class="icon">📍</span> ${app.location}</div>` : ''}
+                                    ${app.deadline ? `
+                                        <div class="info-item ${isUrgent ? 'urgent' : ''}">
+                                            <span class="icon">📅</span>
+                                            Deadline: ${new Date(app.deadline).toLocaleDateString()}
+                                            ${daysLeft !== null ? `<span style="margin-left: 0.25rem;">(${daysLeft} days)</span>` : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-secondary" onclick="editApplication(${app.id})">
+                                    <span class="icon">✏️</span> Edit
+                                </button>
+                                ${app.link ? `
+                                    <a href="${app.link}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                                        View Posting
+                                    </a>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        ${renderProgressSections(app)}
+                        ${renderDetails(app)}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderProgressSections(app) {
+            let html = '';
+
+            if (config.referenceWriters.length > 0) {
+                const completed = Object.values(app.refs || {}).filter(Boolean).length;
+                html += `
+                    <div class="progress-section" style="background: #eff6ff;">
+                        <div class="progress-header">
+                            <span class="progress-title">Reference Letters</span>
+                            <span class="progress-count">${completed} / ${config.referenceWriters.length} submitted</span>
+                        </div>
+                        <div class="progress-items">
+                            ${config.referenceWriters.map(name => `
+                                <span class="progress-item ${app.refs && app.refs[name] ? 'complete' : 'incomplete'}">
+                                    ${app.refs && app.refs[name] ? '✓' : '○'} ${name}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (config.materials.length > 0) {
+                const completed = Object.values(app.materials || {}).filter(Boolean).length;
+                html += `
+                    <div class="progress-section" style="background: #f3e8ff;">
+                        <div class="progress-header">
+                            <span class="progress-title">Application Materials</span>
+                            <span class="progress-count">${completed} / ${config.materials.length} ready</span>
+                        </div>
+                        <div class="progress-items">
+                            ${config.materials.map(name => `
+                                <span class="progress-item ${app.materials && app.materials[name] ? 'complete' : 'incomplete'}">
+                                    ${app.materials && app.materials[name] ? '✓' : '○'} ${name === 'cv' ? 'CV' : name}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            config.customChecklists.forEach(checklist => {
+                const values = app.customChecklistValues && app.customChecklistValues[checklist.id] || {};
+                const completed = Object.values(values).filter(Boolean).length;
+                html += `
+                    <div class="progress-section" style="background: #fef3c7;">
+                        <div class="progress-header">
+                            <span class="progress-title">${checklist.name}</span>
+                            <span class="progress-count">${completed} / ${checklist.items.length} complete</span>
+                        </div>
+                        <div class="progress-items">
+                            ${checklist.items.map(item => `
+                                <span class="progress-item ${values[item] ? 'complete' : 'incomplete'}">
+                                    ${values[item] ? '✓' : '○'} ${item}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        function renderDetails(app) {
+            let details = [];
+
+            config.customFields.forEach(field => {
+                const value = app.customFieldValues && app.customFieldValues[field.id];
+                if (value) {
+                    if (field.type === 'url') {
+                        details.push(`<div class="detail-item"><span class="icon">📄</span><span class="detail-label">${field.name}:</span> <a href="${value}" target="_blank" rel="noopener noreferrer" style="color: #2563eb;">${value}</a></div>`);
+                    } else {
+                        details.push(`<div class="detail-item"><span class="icon">📄</span><span class="detail-label">${field.name}:</span> <span class="detail-value">${value}</span></div>`);
+                    }
+                }
+            });
+
+            if (app.connections) {
+                details.push(`<div class="detail-item"><span class="icon">👤</span><span class="detail-label">Connections:</span> <span class="detail-value">${app.connections}</span></div>`);
+            }
+
+            if (app.contact) {
+                details.push(`<div class="detail-item"><span class="icon">✉️</span><span class="detail-label">Contact:</span> <a href="mailto:${app.contact}" style="color: #2563eb;">${app.contact}</a></div>`);
+            }
+
+            if (app.comments) {
+                details.push(`<div class="detail-item"><span class="icon">⚠️</span><span class="detail-label">Notes:</span> <span class="detail-value">${app.comments}</span></div>`);
+            }
+
+            return details.length > 0 ? `<div class="detail-section">${details.join('')}</div>` : '';
+        }
+
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'submitted': return '✅';
+                case 'in-progress': return '🕐';
+                default: return '⚠️';
+            }
+        }
+
+        function renderEditForm(app) {
+            const formHtml = `
+                <div class="application-card">
+                    <div class="edit-form">
+                        <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem;">Edit Application</h2>
+                        ${renderFormFields(app, false)}
+                    </div>
+                </div>
+            `;
+            return formHtml;
+        }
+
+        function renderFormFields(app, isNew) {
+            const customFieldsInGrid = config.customFields.filter(field => field.type !== 'textarea');
+            const customFieldsFullWidth = config.customFields.filter(field => field.type === 'textarea');
+            
+            return `
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">School/Institution *</label>
+                        <input type="text" class="form-input" id="${isNew ? 'new' : 'edit'}-school" value="${app.school || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Position *</label>
+                        <input type="text" class="form-input" id="${isNew ? 'new' : 'edit'}-position" value="${app.position || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Position Title</label>
+                        <input type="text" class="form-input" id="${isNew ? 'new' : 'edit'}-title" value="${app.title || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Location</label>
+                        <input type="text" class="form-input" id="${isNew ? 'new' : 'edit'}-location" value="${app.location || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Deadline</label>
+                        <input type="date" class="form-input" id="${isNew ? 'new' : 'edit'}-deadline" value="${app.deadline || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-input" id="${isNew ? 'new' : 'edit'}-status">
+                            ${config.statusOptions.map(status => 
+                                `<option value="${status}" ${app.status === status ? 'selected' : ''}>${status.replace(/-/g, ' ')}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Contact Email</label>
+                        <input type="email" class="form-input" id="${isNew ? 'new' : 'edit'}-contact" value="${app.contact || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Connections</label>
+                        <input type="text" class="form-input" id="${isNew ? 'new' : 'edit'}-connections" value="${app.connections || ''}">
+                    </div>
+                    ${customFieldsInGrid.map(field => `
+                        <div class="form-group">
+                            <label class="form-label">${field.name}</label>
+                            <input type="${field.type}" class="form-input" id="${isNew ? 'new' : 'edit'}-custom-${field.id}" value="${app.customFieldValues && app.customFieldValues[field.id] || ''}">
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Application Link/URL</label>
+                    <input type="url" class="form-input" id="${isNew ? 'new' : 'edit'}-link" value="${app.link || ''}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Comments/Notes</label>
+                    <textarea class="form-textarea" id="${isNew ? 'new' : 'edit'}-comments" rows="3">${app.comments || ''}</textarea>
+                </div>
+                
+                ${customFieldsFullWidth.map(field => `
+                    <div class="form-group">
+                        <label class="form-label">${field.name}</label>
+                        <textarea class="form-textarea" id="${isNew ? 'new' : 'edit'}-custom-${field.id}" rows="3">${app.customFieldValues && app.customFieldValues[field.id] || ''}</textarea>
+                    </div>
+                `).join('')}
+                
+                ${renderCheckboxSections(app, isNew)}
+                
+                <div style="display: flex; gap: 0.5rem; padding-top: 0.5rem;">
+                    <button class="btn btn-primary" onclick="${isNew ? 'addApplication()' : `saveApplication(${app.id})`}">
+                        <span class="icon">💾</span> ${isNew ? 'Add Application' : 'Save Changes'}
+                    </button>
+                    <button class="btn btn-secondary" onclick="${isNew ? 'hideAddForm()' : 'cancelEdit()'}">
+                        <span class="icon">✕</span> Cancel
+                    </button>
+                </div>
+            `;
+        }
+
+
+
+        function renderCheckboxSections(app, isNew) {
+            let html = '';
+            
+            if (config.referenceWriters.length > 0) {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">Reference Letters</label>
+                        <div class="checkbox-group">
+                            ${config.referenceWriters.map(ref => `
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="${isNew ? 'new' : 'edit'}-ref-${ref}" ${app.refs && app.refs[ref] ? 'checked' : ''}>
+                                    <span style="text-transform: capitalize;">${ref}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (config.materials.length > 0) {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">Application Materials</label>
+                        <div class="checkbox-group">
+                            ${config.materials.map(material => `
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="${isNew ? 'new' : 'edit'}-material-${material}" ${app.materials && app.materials[material] ? 'checked' : ''}>
+                                    <span style="text-transform: capitalize;">${material === 'cv' ? 'CV' : material}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            config.customChecklists.forEach(checklist => {
+                const values = app.customChecklistValues && app.customChecklistValues[checklist.id] || {};
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">${checklist.name}</label>
+                        <div class="checkbox-group">
+                            ${checklist.items.map(item => `
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="${isNew ? 'new' : 'edit'}-checklist-${checklist.id}-${item}" ${values[item] ? 'checked' : ''}>
+                                    <span>${item}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            return html;
+        }
+
+        function editApplication(id) {
+            editingId = id;
+            renderApplications();
+        }
+
+        function cancelEdit() {
+            editingId = null;
+            renderApplications();
+        }
+
+        function getFormData(prefix) {
+            const data = {
+                school: document.getElementById(`${prefix}-school`).value,
+                position: document.getElementById(`${prefix}-position`).value,
+                title: document.getElementById(`${prefix}-title`).value,
+                location: document.getElementById(`${prefix}-location`).value,
+                deadline: document.getElementById(`${prefix}-deadline`).value,
+                status: document.getElementById(`${prefix}-status`).value,
+                contact: document.getElementById(`${prefix}-contact`).value,
+                connections: document.getElementById(`${prefix}-connections`).value,
+                link: document.getElementById(`${prefix}-link`).value,
+                comments: document.getElementById(`${prefix}-comments`).value,
+                refs: {},
+                materials: {},
+                customFieldValues: {},
+                customChecklistValues: {}
+            };
+            
+            config.referenceWriters.forEach(ref => {
+                const checkbox = document.getElementById(`${prefix}-ref-${ref}`);
+                if (checkbox) data.refs[ref] = checkbox.checked;
+            });
+            
+            config.materials.forEach(material => {
+                const checkbox = document.getElementById(`${prefix}-material-${material}`);
+                if (checkbox) data.materials[material] = checkbox.checked;
+            });
+            
+            config.customFields.forEach(field => {
+                const input = document.getElementById(`${prefix}-custom-${field.id}`);
+                if (input) data.customFieldValues[field.id] = input.value;
+            });
+            
+            config.customChecklists.forEach(checklist => {
+                data.customChecklistValues[checklist.id] = {};
+                checklist.items.forEach(item => {
+                    const checkbox = document.getElementById(`${prefix}-checklist-${checklist.id}-${item}`);
+                    if (checkbox) data.customChecklistValues[checklist.id][item] = checkbox.checked;
+                });
+            });
+            
+            return data;
+        }
+
+        function saveApplication(id) {
+            const formData = getFormData('edit');
+            applications = applications.map(app => 
+                app.id === id ? {...app, ...formData} : app
+            );
+            editingId = null;
+            hasUnsavedChanges = true;
+            renderApplications();
+            updateStats();
+        }
+
+        function showAddForm() {
+            const container = document.getElementById('addFormContainer');
+            
+            // Initialize empty app with proper structure
+            const refs = {};
+            config.referenceWriters.forEach(writer => {
+                refs[writer] = false;
+            });
+            const materials = {};
+            config.materials.forEach(material => {
+                materials[material] = false;
+            });
+            const customFieldValues = {};
+            config.customFields.forEach(field => {
+                customFieldValues[field.id] = '';
+            });
+            const customChecklistValues = {};
+            config.customChecklists.forEach(checklist => {
+                customChecklistValues[checklist.id] = {};
+                checklist.items.forEach(item => {
+                    customChecklistValues[checklist.id][item] = false;
+                });
+            });
+            
+            const emptyApp = {
+                school: '',
+                position: '',
+                title: '',
+                location: '',
+                deadline: '',
+                status: config.statusOptions[0] || 'pending',
+                contact: '',
+                connections: '',
+                link: '',
+                comments: '',
+                refs,
+                materials,
+                customFieldValues,
+                customChecklistValues
+            };
+            
+            container.innerHTML = `
+                <div class="application-card" style="border: 2px solid #2563eb;">
+                    <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem;">New Application</h2>
+                    ${renderFormFields(emptyApp, true)}
+                </div>
+            `;
+        }
+
+        function hideAddForm() {
+            document.getElementById('addFormContainer').innerHTML = '';
+        }
+
+        function addApplication() {
+            const formData = getFormData('new');
+            const newId = applications.length > 0 ? Math.max(...applications.map(a => a.id)) + 1 : 1;
+            
+            // Ensure all required properties are present
+            const newApp = {
+                ...formData,
+                id: newId,
+                numRefs: 3  // Add the missing numRefs property
+            };
+            
+            applications.push(newApp);
+            hideAddForm();
+            hasUnsavedChanges = true;
+            renderApplications();
+            updateStats();
+        }
+
+        function exportData() {
+            try {
+                // Create a standardized export format
+                const dataToExport = {
+                    // Metadata for version compatibility
+                    fileFormat: {
+                        version: "1.0.0",
+                        type: "postdoc-tracker-export",
+                        description: "Postdoc Application Tracker Data Export"
+                    },
+                    
+                    // Export metadata
+                    exportInfo: {
+                        exportDate: new Date().toISOString(),
+                        exportedBy: "Postdoc Application Tracker",
+                        totalApplications: applications.length
+                    },
+                    
+                    // Configuration/Settings data
+                    settings: {
+                        referenceWriters: [...config.referenceWriters],
+                        materials: [...config.materials],
+                        statusOptions: [...config.statusOptions],
+                        customFields: config.customFields.map(field => ({
+                            id: field.id,
+                            name: field.name,
+                            type: field.type
+                        })),
+                        customChecklists: config.customChecklists.map(checklist => ({
+                            id: checklist.id,
+                            name: checklist.name,
+                            items: [...checklist.items]
+                        }))
+                    },
+                    
+                    // Application data - ensure all fields are preserved
+                    applications: applications.map(app => ({
+                        id: app.id,
+                        school: app.school || '',
+                        position: app.position || '',
+                        title: app.title || '',
+                        location: app.location || '',
+                        deadline: app.deadline || '',
+                        status: app.status || 'pending',
+                        contact: app.contact || '',
+                        connections: app.connections || '',
+                        link: app.link || '',
+                        comments: app.comments || '',
+                        numRefs: app.numRefs || 3,
+                        
+                        // Reference tracking
+                        refs: app.refs ? {...app.refs} : {},
+                        
+                        // Materials tracking
+                        materials: app.materials ? {...app.materials} : {},
+                        
+                        // Custom field values
+                        customFieldValues: app.customFieldValues ? {...app.customFieldValues} : {},
+                        
+                        // Custom checklist values
+                        customChecklistValues: app.customChecklistValues ? {...app.customChecklistValues} : {},
+                        
+                        // Add timestamp for when this application was last modified
+                        lastModified: new Date().toISOString()
+                    }))
+                };
+                
+                const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `postdoc-tracker-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                hasUnsavedChanges = false;
+                console.log('Export successful - Format version 1.0.0');
+            } catch (error) {
+                console.error('Export failed:', error);
+                alert('Export failed. Please try again.');
+            }
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    console.log('Import data:', data);
+                    
+                    // Check if this is the new standardized format
+                    if (data.fileFormat && data.fileFormat.type === 'postdoc-tracker-export') {
+                        console.log('Importing standardized format version:', data.fileFormat.version);
+                        
+                        // Import settings from new format
+                        if (data.settings) {
+                            config = {
+                                referenceWriters: data.settings.referenceWriters || [],
+                                materials: data.settings.materials || [],
+                                statusOptions: data.settings.statusOptions || ['pending', 'in-progress', 'submitted'],
+                                customFields: data.settings.customFields || [],
+                                customChecklists: data.settings.customChecklists || []
+                            };
+                        }
+                        
+                        // Import applications from new format
+                        if (data.applications) {
+                            applications = data.applications.map(app => ({
+                                id: app.id,
+                                school: app.school || '',
+                                position: app.position || '',
+                                title: app.title || '',
+                                location: app.location || '',
+                                deadline: app.deadline || '',
+                                status: app.status || 'pending',
+                                contact: app.contact || '',
+                                connections: app.connections || '',
+                                link: app.link || '',
+                                comments: app.comments || '',
+                                numRefs: app.numRefs || 3,
+                                refs: app.refs || {},
+                                materials: app.materials || {},
+                                customFieldValues: app.customFieldValues || {},
+                                customChecklistValues: app.customChecklistValues || {}
+                            }));
+                        }
+                        
+                        alert(`Data imported successfully!\nFormat: ${data.fileFormat.version}\nApplications: ${data.exportInfo?.totalApplications || applications.length}\nExported: ${data.exportInfo?.exportDate ? new Date(data.exportInfo.exportDate).toLocaleDateString() : 'Unknown'}`);
+                    } 
+                    // Backward compatibility with old format
+                    else {
+                        console.log('Importing legacy format');
+                        if (data.applications) applications = data.applications;
+                        if (data.config) config = data.config;
+                        alert('Data imported successfully! (Legacy format)');
+                    }
+                    
+                    updateApplicationsData();
+                    renderApplications();
+                    updateStats();
+                    updateFilterOptions();
+                    hasUnsavedChanges = false;
+                    
+                } catch (error) {
+                    console.error('Import failed:', error);
+                    alert('Error importing data. Please make sure the file is valid JSON.\n\nError details: ' + error.message);
+                }
+            };
+            
+            reader.onerror = () => {
+                alert('Error reading file. Please try again.');
+            };
+            
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function showSettings() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.add('active');
+            renderSettings();
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function renderSettings() {
+            const content = document.getElementById('settingsContent');
+            content.innerHTML = `
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem;">Reference Letter Writers</h3>
+                    <div id="referenceWritersList"></div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                        <input type="text" class="form-input" id="newRefWriter" placeholder="Add new reference writer">
+                        <button class="btn btn-primary" onclick="addConfigItem('referenceWriters')">Add</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem;">Application Materials</h3>
+                    <div id="materialsList"></div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                        <input type="text" class="form-input" id="newMaterial" placeholder="Add new material">
+                        <button class="btn btn-primary" onclick="addConfigItem('materials')">Add</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem;">Status Options</h3>
+                    <div id="statusOptionsList"></div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                        <input type="text" class="form-input" id="newStatus" placeholder="Add new status">
+                        <button class="btn btn-primary" onclick="addConfigItem('statusOptions')">Add</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem;">Custom Fields</h3>
+                    <div id="customFieldsList"></div>
+                    <div style="border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.75rem; margin-top: 0.75rem;">
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <input type="text" class="form-input" id="newCustomFieldName" placeholder="Field name" style="flex: 1;">
+                            <select class="form-input" id="newCustomFieldType">
+                                <option value="text">Text</option>
+                                <option value="textarea">Long Text</option>
+                                <option value="date">Date</option>
+                                <option value="url">URL</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="addCustomField()">Add Field</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem;">Custom Checklists</h3>
+                    <div id="customChecklistsList"></div>
+                    <div style="border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.75rem; margin-top: 0.75rem;">
+                        <input type="text" class="form-input" id="newChecklistName" placeholder="Checklist name" style="margin-bottom: 0.5rem;">
+                        <div id="newChecklistItems">
+                            <input type="text" class="form-input" placeholder="Item 1" style="margin-bottom: 0.5rem;">
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary" onclick="addChecklistItem()">+ Add Item</button>
+                            <button class="btn btn-primary" onclick="addCustomChecklist()">Add Checklist</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                    <button class="btn btn-primary" style="flex: 1;" onclick="saveSettings()">Save Settings</button>
+                    <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+                </div>
+            `;
+            
+            renderConfigList('referenceWriters', 'referenceWritersList');
+            renderConfigList('materials', 'materialsList');
+            renderConfigList('statusOptions', 'statusOptionsList');
+            renderCustomFieldsList();
+            renderCustomChecklistsList();
+        }
+
+        function renderConfigList(configKey, elementId) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = config[configKey].map((item, idx) => `
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <input type="text" class="form-input" value="${item}" onchange="updateConfigItem('${configKey}', ${idx}, this.value)">
+                    <button class="btn btn-secondary" style="background: #ef4444;" onclick="removeConfigItem('${configKey}', ${idx})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function updateConfigItem(configKey, index, value) {
+            config[configKey][index] = value;
+        }
+
+        function removeConfigItem(configKey, index) {
+            config[configKey].splice(index, 1);
+            renderSettings();
+        }
+
+        function addConfigItem(configKey) {
+            const inputMap = {
+                'referenceWriters': 'newRefWriter',
+                'materials': 'newMaterial',
+                'statusOptions': 'newStatus'
+            };
+            const input = document.getElementById(inputMap[configKey]);
+            if (input.value.trim()) {
+                const value = configKey === 'statusOptions' ? 
+                    input.value.toLowerCase().replace(/\s+/g, '-') : 
+                    input.value.toLowerCase().replace(/\s+/g, '_');
+                config[configKey].push(value);
+                input.value = '';
+                renderSettings();
+            }
+        }
+
+        function renderCustomFieldsList() {
+            const container = document.getElementById('customFieldsList');
+            container.innerHTML = config.customFields.map((field, idx) => `
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.5rem; background: #f9fafb; border-radius: 0.25rem;">
+                    <span style="font-weight: 500;">${field.name}</span>
+                    <span style="font-size: 0.875rem; color: #6b7280;">(${field.type})</span>
+                    <button class="btn btn-secondary" style="margin-left: auto; background: #ef4444;" onclick="removeCustomField(${idx})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function renderCustomChecklistsList() {
+            const container = document.getElementById('customChecklistsList');
+            container.innerHTML = config.customChecklists.map((checklist, idx) => `
+                <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: #f9fafb; border-radius: 0.25rem;">
+                    <div style="display: flex; justify-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 500;">${checklist.name}</span>
+                        <button class="btn btn-secondary" style="background: #ef4444;" onclick="removeCustomChecklist(${idx})">Remove</button>
+                    </div>
+                    <div style="font-size: 0.875rem; color: #6b7280;">Items: ${checklist.items.join(', ')}</div>
+                </div>
+            `).join('');
+        }
+
+        function addCustomField() {
+            const nameInput = document.getElementById('newCustomFieldName');
+            const typeSelect = document.getElementById('newCustomFieldType');
+            
+            if (nameInput.value.trim()) {
+                config.customFields.push({
+                    id: nameInput.value.toLowerCase().replace(/\s+/g, '_'),
+                    name: nameInput.value,
+                    type: typeSelect.value
+                });
+                nameInput.value = '';
+                typeSelect.value = 'text';
+                renderSettings();
+            }
+        }
+
+        function removeCustomField(index) {
+            config.customFields.splice(index, 1);
+            renderSettings();
+        }
+
+        function addChecklistItem() {
+            const container = document.getElementById('newChecklistItems');
+            const itemCount = container.children.length;
+            const newInput = document.createElement('input');
+            newInput.type = 'text';
+            newInput.className = 'form-input';
+            newInput.placeholder = `Item ${itemCount + 1}`;
+            newInput.style.marginBottom = '0.5rem';
+            container.appendChild(newInput);
+        }
+
+        function addCustomChecklist() {
+            const nameInput = document.getElementById('newChecklistName');
+            const itemsContainer = document.getElementById('newChecklistItems');
+            const itemInputs = itemsContainer.querySelectorAll('input');
+            
+            if (nameInput.value.trim()) {
+                const items = Array.from(itemInputs)
+                    .map(input => input.value.trim())
+                    .filter(value => value);
+                
+                if (items.length > 0) {
+                    config.customChecklists.push({
+                        id: nameInput.value.toLowerCase().replace(/\s+/g, '_'),
+                        name: nameInput.value,
+                        items: items
+                    });
+                    
+                    nameInput.value = '';
+                    itemsContainer.innerHTML = '<input type="text" class="form-input" placeholder="Item 1" style="margin-bottom: 0.5rem;">';
+                    renderSettings();
+                }
+            }
+        }
+
+        function removeCustomChecklist(index) {
+            config.customChecklists.splice(index, 1);
+            renderSettings();
+        }
+
+        function saveSettings() {
+            updateApplicationsData();
+            renderApplications();
+            updateFilterOptions();
+            hasUnsavedChanges = true;
+            closeSettings();
+        }
+
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html>

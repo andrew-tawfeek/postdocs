@@ -49,7 +49,7 @@ function saveToLocalStorage() {
         console.error('Failed to save to localStorage:', error);
         // Handle storage quota exceeded or other errors
         if (error.name === 'QuotaExceededError') {
-            alert('Browser storage is full. Please export your data and clear some space.');
+            alert('Storage full. Export data first.');
         }
         const indicator = document.getElementById('autoSaveIndicator');
         if (indicator) {
@@ -92,7 +92,7 @@ function loadFromLocalStorage() {
         return false;
     } catch (error) {
         console.error('Failed to load from localStorage:', error);
-        alert('Error loading saved data. Starting with default settings.');
+        alert('Error loading data. Using defaults.');
         return false;
     }
 }
@@ -661,10 +661,7 @@ function deleteApplication(id) {
     const app = applications.find(a => a.id === id);
     if (!app) return;
     
-    const confirmMessage = `Are you sure you want to delete this application?\n\n` +
-                         `School: ${app.school}\n` +
-                         `Position: ${app.position}\n\n` +
-                         `This action cannot be undone.`;
+    const confirmMessage = `Delete "${app.school}" application?\n\nThis cannot be undone.`;
     
     if (confirm(confirmMessage)) {
         applications = applications.filter(a => a.id !== id);
@@ -899,7 +896,7 @@ function exportData() {
         console.log('Export successful - Format version 1.0.0');
     } catch (error) {
         console.error('Export failed:', error);
-        alert('Export failed. Please try again.');
+        alert('Export failed.');
     }
 }
 
@@ -917,13 +914,23 @@ function importData(event) {
             let importMode = 'replace'; // Default to replace for backward compatibility
             
             if (applications.length > 0) {
-                const choice = confirm(
-                    `You currently have ${applications.length} application(s) in your tracker.\n\n` +
-                    `Click "OK" to ADD the imported data to your existing data (stack/merge)\n` +
-                    `Click "Cancel" to REPLACE all your current data with the imported data\n\n` +
-                    `Note: Adding data will preserve your existing applications and settings.`
+                const choice = prompt(
+                    `You have ${applications.length} existing applications.\n\nChoose import mode:\n1 = Add imported data (keep existing)\n2 = Replace all data (delete existing)\n3 = Cancel import\n\nEnter 1, 2, or 3:`,
+                    '1'
                 );
-                importMode = choice ? 'add' : 'replace';
+                
+                if (choice === '3' || choice === null) {
+                    // User chose to cancel import
+                    return;
+                } else if (choice === '1') {
+                    importMode = 'add';
+                } else if (choice === '2') {
+                    importMode = 'replace';
+                } else {
+                    // Invalid input, default to cancel for safety
+                    alert('Invalid choice. Import cancelled.');
+                    return;
+                }
             }
             
             // Check if this is the new standardized format
@@ -1013,7 +1020,7 @@ function importData(event) {
                     delete window.importDuplicateInfo;
                 }
                 
-                alert(`Data imported successfully! (${modeText})\nFormat: ${data.fileFormat.version}\nApplications: ${totalApps}\nExported: ${data.exportInfo?.exportDate ? new Date(data.exportInfo.exportDate).toLocaleDateString() : 'Unknown'}${duplicateMessage}`);
+                alert(`Import successful! ${totalApps} applications ${modeText}${duplicateMessage}`);
             } 
             // Backward compatibility with old format
             else {
@@ -1067,7 +1074,7 @@ function importData(event) {
                     delete window.importDuplicateInfo;
                 }
                 
-                alert(`Data imported successfully! (Legacy format${modeText})${duplicateMessage}`);
+                alert(`Import successful!${modeText}${duplicateMessage}`);
             }
             
             updateApplicationsData();
@@ -1079,12 +1086,12 @@ function importData(event) {
             
         } catch (error) {
             console.error('Import failed:', error);
-            alert('Error importing data. Please make sure the file is valid JSON.\n\nError details: ' + error.message);
+            alert('Import failed. Invalid file format.');
         }
     };
     
     reader.onerror = () => {
-        alert('Error reading file. Please try again.');
+        alert('File read error.');
     };
     
     reader.readAsText(file);
@@ -1402,13 +1409,13 @@ function saveSettings() {
 }
 
 function clearLocalData() {
-    const confirmMessage = 'Are you sure you want to clear all locally stored data?\n\nThis will:\n- Remove all applications from browser storage\n- Reset settings to defaults\n- Keep your current session intact\n\nThis action cannot be undone. Consider exporting your data first.';
+    const confirmMessage = 'Clear all stored data? This cannot be undone.\n\nConsider exporting first.';
     
     if (confirm(confirmMessage)) {
         if (clearLocalStorage()) {
-            alert('Local data cleared successfully!\n\nYour current session data is still intact. Refresh the page to start with default settings, or continue working with your current data.');
+            alert('Local data cleared! Current session still intact.');
         } else {
-            alert('Failed to clear local data. Please try again.');
+            alert('Failed to clear data.');
         }
     }
 }

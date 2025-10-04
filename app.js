@@ -360,7 +360,7 @@ function renderProgressSections(app) {
             <div class="progress-section" style="background: #f3e8ff;">
                 <div class="progress-header">
                     <span class="progress-title">Application Materials</span>
-                    <span class="progress-count">${completed} / ${config.materials.length} ready</span>
+                    <span class="progress-count">${completed} / ${config.materials.length} required</span>
                 </div>
                 <div class="progress-items">
                     ${config.materials.map(name => {

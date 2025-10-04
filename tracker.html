@@ -107,6 +107,15 @@
             background-color: #4338ca;
         }
 
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -497,7 +506,7 @@
                 <button class="btn btn-secondary" onclick="showSettings()">
                     <span class="icon">⚙️</span> Settings
                 </button>
-                <button class="btn btn-indigo" onclick="document.getElementById('importFile').click()">
+                <button class="btn btn-indigo" onclick="document.getElementById('importFile').click()" title="Import data - can add to existing data or replace it">
                     <span class="icon">📥</span> Import Data
                 </button>
                 <input type="file" id="importFile" accept=".json" onchange="importData(event)" style="display: none;">
@@ -734,9 +743,12 @@
                                 </div>
                             </div>
                             
-                            <div style="display: flex; gap: 0.5rem;">
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                 <button class="btn btn-secondary" onclick="editApplication(${app.id})">
                                     <span class="icon">✏️</span> Edit
+                                </button>
+                                <button class="btn btn-danger" onclick="deleteApplication(${app.id})" title="Delete this application">
+                                    <span class="icon">🗑️</span> Delete
                                 </button>
                                 ${app.link ? `
                                     <a href="${app.link}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
@@ -1011,6 +1023,23 @@
             renderApplications();
         }
 
+        function deleteApplication(id) {
+            const app = applications.find(a => a.id === id);
+            if (!app) return;
+            
+            const confirmMessage = `Are you sure you want to delete this application?\n\n` +
+                                 `School: ${app.school}\n` +
+                                 `Position: ${app.position}\n\n` +
+                                 `This action cannot be undone.`;
+            
+            if (confirm(confirmMessage)) {
+                applications = applications.filter(a => a.id !== id);
+                hasUnsavedChanges = true;
+                renderApplications();
+                updateStats();
+            }
+        }
+
         function getFormData(prefix) {
             const data = {
                 school: document.getElementById(`${prefix}-school`).value,
@@ -1231,24 +1260,43 @@
                     const data = JSON.parse(e.target.result);
                     console.log('Import data:', data);
                     
+                    // Check if user has existing data and ask for import preference
+                    let importMode = 'replace'; // Default to replace for backward compatibility
+                    
+                    if (applications.length > 0) {
+                        const choice = confirm(
+                            `You currently have ${applications.length} application(s) in your tracker.\n\n` +
+                            `Click "OK" to ADD the imported data to your existing data (stack/merge)\n` +
+                            `Click "Cancel" to REPLACE all your current data with the imported data\n\n` +
+                            `Note: Adding data will preserve your existing applications and settings.`
+                        );
+                        importMode = choice ? 'add' : 'replace';
+                    }
+                    
                     // Check if this is the new standardized format
                     if (data.fileFormat && data.fileFormat.type === 'postdoc-tracker-export') {
                         console.log('Importing standardized format version:', data.fileFormat.version);
                         
                         // Import settings from new format
                         if (data.settings) {
-                            config = {
-                                referenceWriters: data.settings.referenceWriters || [],
-                                materials: data.settings.materials || [],
-                                statusOptions: data.settings.statusOptions || ['pending', 'in-progress', 'submitted'],
-                                customFields: data.settings.customFields || [],
-                                customChecklists: data.settings.customChecklists || []
-                            };
+                            if (importMode === 'replace') {
+                                // Replace mode: completely replace settings
+                                config = {
+                                    referenceWriters: data.settings.referenceWriters || [],
+                                    materials: data.settings.materials || [],
+                                    statusOptions: data.settings.statusOptions || ['pending', 'in-progress', 'submitted'],
+                                    customFields: data.settings.customFields || [],
+                                    customChecklists: data.settings.customChecklists || []
+                                };
+                            } else {
+                                // Add mode: merge settings intelligently
+                                mergeSettings(data.settings);
+                            }
                         }
                         
                         // Import applications from new format
                         if (data.applications) {
-                            applications = data.applications.map(app => ({
+                            const importedApps = data.applications.map(app => ({
                                 id: app.id,
                                 school: app.school || '',
                                 position: app.position || '',
@@ -1266,16 +1314,51 @@
                                 customFieldValues: app.customFieldValues || {},
                                 customChecklistValues: app.customChecklistValues || {}
                             }));
+                            
+                            if (importMode === 'replace') {
+                                applications = importedApps;
+                            } else {
+                                // Add mode: merge applications with new IDs to avoid conflicts
+                                const maxExistingId = applications.length > 0 ? Math.max(...applications.map(a => a.id)) : 0;
+                                const appsToAdd = importedApps.map((app, index) => ({
+                                    ...app,
+                                    id: maxExistingId + index + 1
+                                }));
+                                applications = [...applications, ...appsToAdd];
+                            }
                         }
                         
-                        alert(`Data imported successfully!\nFormat: ${data.fileFormat.version}\nApplications: ${data.exportInfo?.totalApplications || applications.length}\nExported: ${data.exportInfo?.exportDate ? new Date(data.exportInfo.exportDate).toLocaleDateString() : 'Unknown'}`);
+                        const modeText = importMode === 'add' ? 'added to existing data' : 'replaced existing data';
+                        const totalApps = importMode === 'add' ? 
+                            `${data.exportInfo?.totalApplications || 0} imported (${applications.length} total)` :
+                            `${data.exportInfo?.totalApplications || applications.length}`;
+                        
+                        alert(`Data imported successfully! (${modeText})\nFormat: ${data.fileFormat.version}\nApplications: ${totalApps}\nExported: ${data.exportInfo?.exportDate ? new Date(data.exportInfo.exportDate).toLocaleDateString() : 'Unknown'}`);
                     } 
                     // Backward compatibility with old format
                     else {
                         console.log('Importing legacy format');
-                        if (data.applications) applications = data.applications;
-                        if (data.config) config = data.config;
-                        alert('Data imported successfully! (Legacy format)');
+                        
+                        if (importMode === 'replace') {
+                            if (data.applications) applications = data.applications;
+                            if (data.config) config = data.config;
+                        } else {
+                            // Add mode for legacy format
+                            if (data.config) {
+                                mergeSettings(data.config);
+                            }
+                            if (data.applications) {
+                                const maxExistingId = applications.length > 0 ? Math.max(...applications.map(a => a.id)) : 0;
+                                const appsToAdd = data.applications.map((app, index) => ({
+                                    ...app,
+                                    id: maxExistingId + index + 1
+                                }));
+                                applications = [...applications, ...appsToAdd];
+                            }
+                        }
+                        
+                        const modeText = importMode === 'add' ? ' (added to existing data)' : '';
+                        alert(`Data imported successfully! (Legacy format${modeText})`);
                     }
                     
                     updateApplicationsData();
@@ -1296,6 +1379,50 @@
             
             reader.readAsText(file);
             event.target.value = '';
+        }
+
+        function mergeSettings(importedSettings) {
+            // Merge reference writers (avoid duplicates)
+            if (importedSettings.referenceWriters) {
+                const newWriters = importedSettings.referenceWriters.filter(writer => 
+                    !config.referenceWriters.includes(writer)
+                );
+                config.referenceWriters = [...config.referenceWriters, ...newWriters];
+            }
+            
+            // Merge materials (avoid duplicates)
+            if (importedSettings.materials) {
+                const newMaterials = importedSettings.materials.filter(material => 
+                    !config.materials.includes(material)
+                );
+                config.materials = [...config.materials, ...newMaterials];
+            }
+            
+            // Merge status options (avoid duplicates)
+            if (importedSettings.statusOptions) {
+                const newStatuses = importedSettings.statusOptions.filter(status => 
+                    !config.statusOptions.includes(status)
+                );
+                config.statusOptions = [...config.statusOptions, ...newStatuses];
+            }
+            
+            // Merge custom fields (avoid duplicates by ID)
+            if (importedSettings.customFields) {
+                const existingFieldIds = config.customFields.map(field => field.id);
+                const newFields = importedSettings.customFields.filter(field => 
+                    !existingFieldIds.includes(field.id)
+                );
+                config.customFields = [...config.customFields, ...newFields];
+            }
+            
+            // Merge custom checklists (avoid duplicates by ID)
+            if (importedSettings.customChecklists) {
+                const existingChecklistIds = config.customChecklists.map(checklist => checklist.id);
+                const newChecklists = importedSettings.customChecklists.filter(checklist => 
+                    !existingChecklistIds.includes(checklist.id)
+                );
+                config.customChecklists = [...config.customChecklists, ...newChecklists];
+            }
         }
 
         function showSettings() {

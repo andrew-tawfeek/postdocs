@@ -1,5 +1,14 @@
 // Postdoc Application Tracker JavaScript
 
+// LocalStorage keys
+const STORAGE_KEYS = {
+    APPLICATIONS: 'postdoc-tracker-applications',
+    CONFIG: 'postdoc-tracker-config',
+    VERSION: 'postdoc-tracker-version'
+};
+
+const CURRENT_VERSION = '1.0.0';
+
 // Application state
 let applications = [];
 
@@ -17,13 +26,105 @@ let filterType = 'all';
 let sortBy = 'deadline';
 let hasUnsavedChanges = false;
 
+// LocalStorage utility functions
+function saveToLocalStorage() {
+    showSaveIndicator();
+    
+    try {
+        const dataToSave = {
+            version: CURRENT_VERSION,
+            timestamp: new Date().toISOString(),
+            applications: applications,
+            config: config
+        };
+        
+        localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(applications));
+        localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
+        localStorage.setItem(STORAGE_KEYS.VERSION, CURRENT_VERSION);
+        
+        console.log('Data saved to localStorage successfully');
+        showSavedIndicator();
+        return true;
+    } catch (error) {
+        console.error('Failed to save to localStorage:', error);
+        // Handle storage quota exceeded or other errors
+        if (error.name === 'QuotaExceededError') {
+            alert('Browser storage is full. Please export your data and clear some space.');
+        }
+        const indicator = document.getElementById('autoSaveIndicator');
+        if (indicator) {
+            indicator.textContent = '❌ Save failed';
+            indicator.style.color = '#dc2626';
+        }
+        return false;
+    }
+}
+
+function loadFromLocalStorage() {
+    try {
+        const storedVersion = localStorage.getItem(STORAGE_KEYS.VERSION);
+        const storedApplications = localStorage.getItem(STORAGE_KEYS.APPLICATIONS);
+        const storedConfig = localStorage.getItem(STORAGE_KEYS.CONFIG);
+        
+        // Check if we have stored data
+        if (storedApplications && storedConfig) {
+            const parsedApplications = JSON.parse(storedApplications);
+            const parsedConfig = JSON.parse(storedConfig);
+            
+            // Validate the data structure
+            if (Array.isArray(parsedApplications) && parsedConfig && typeof parsedConfig === 'object') {
+                applications = parsedApplications;
+                config = {
+                    // Ensure all required config properties exist with defaults
+                    referenceWriters: parsedConfig.referenceWriters || ['henrich', 'sandor', 'farbod', 'hoffman', 'leiblich', 'branden'],
+                    materials: parsedConfig.materials || ['cover', 'cv', 'research', 'teaching', 'diversity', 'pubs'],
+                    statusOptions: parsedConfig.statusOptions || ['pending', 'in-progress', 'submitted'],
+                    customFields: parsedConfig.customFields || [],
+                    customChecklists: parsedConfig.customChecklists || []
+                };
+                
+                console.log(`Loaded ${applications.length} applications from localStorage (version: ${storedVersion || 'unknown'})`);
+                return true;
+            }
+        }
+        
+        console.log('No valid stored data found, using defaults');
+        return false;
+    } catch (error) {
+        console.error('Failed to load from localStorage:', error);
+        alert('Error loading saved data. Starting with default settings.');
+        return false;
+    }
+}
+
+function clearLocalStorage() {
+    try {
+        localStorage.removeItem(STORAGE_KEYS.APPLICATIONS);
+        localStorage.removeItem(STORAGE_KEYS.CONFIG);
+        localStorage.removeItem(STORAGE_KEYS.VERSION);
+        console.log('LocalStorage cleared successfully');
+        return true;
+    } catch (error) {
+        console.error('Failed to clear localStorage:', error);
+        return false;
+    }
+}
+
 // Initialize the app
 function init() {
+    // Load data from localStorage first
+    const hasStoredData = loadFromLocalStorage();
+    
     setupEventListeners();
     updateApplicationsData();
     renderApplications();
     updateStats();
     updateFilterOptions();
+    
+    // Show welcome message for first-time users
+    if (!hasStoredData && applications.length === 0) {
+        showWelcomeMessage();
+    }
 }
 
 function setupEventListeners() {
@@ -43,9 +144,13 @@ function setupEventListeners() {
     });
 
     window.addEventListener('beforeunload', (e) => {
-        if (hasUnsavedChanges || applications.length > 0) {
+        // Always save to localStorage before closing
+        saveToLocalStorage();
+        
+        // Only show warning if user has significant unsaved work
+        if (hasUnsavedChanges && applications.length > 0) {
             e.preventDefault();
-            e.returnValue = 'You have unsaved data! Please export your data before closing to avoid losing your work.';
+            e.returnValue = 'You have unsaved changes. Consider exporting your data as a backup.';
             return e.returnValue;
         }
     });
@@ -564,6 +669,7 @@ function deleteApplication(id) {
     if (confirm(confirmMessage)) {
         applications = applications.filter(a => a.id !== id);
         hasUnsavedChanges = true;
+        saveToLocalStorage(); // Save to localStorage
         renderApplications();
         updateStats();
     }
@@ -635,6 +741,7 @@ function saveApplication(id) {
     );
     editingId = null;
     hasUnsavedChanges = true;
+    saveToLocalStorage(); // Save to localStorage
     renderApplications();
     updateStats();
 }
@@ -706,6 +813,7 @@ function addApplication() {
     applications.push(newApp);
     hideAddForm();
     hasUnsavedChanges = true;
+    saveToLocalStorage(); // Save to localStorage
     renderApplications();
     updateStats();
 }
@@ -786,7 +894,8 @@ function exportData() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        hasUnsavedChanges = false;
+        hasUnsavedChanges = false; // Reset unsaved changes after successful export
+        saveToLocalStorage(); // Update localStorage to reflect hasUnsavedChanges reset
         console.log('Export successful - Format version 1.0.0');
     } catch (error) {
         console.error('Export failed:', error);
@@ -962,6 +1071,7 @@ function importData(event) {
             }
             
             updateApplicationsData();
+            saveToLocalStorage(); // Save imported data to localStorage
             renderApplications();
             updateStats();
             updateFilterOptions();
@@ -1138,6 +1248,16 @@ function renderSettings() {
             </div>
         </div>
         
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem;">
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #dc2626;">Data Management</h3>
+            <p style="font-size: 0.875rem; color: #7f1d1d; margin-bottom: 0.75rem;">
+                Your applications are automatically saved to your browser's local storage. You can manage this data below.
+            </p>
+            <button class="btn btn-danger" onclick="clearLocalData()" style="font-size: 0.875rem;">
+                <span class="icon">🗑️</span> Clear Local Data
+            </button>
+        </div>
+
         <div style="display: flex; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
             <button class="btn btn-primary" style="flex: 1;" onclick="saveSettings()">Save Settings</button>
             <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
@@ -1274,10 +1394,63 @@ function removeCustomChecklist(index) {
 
 function saveSettings() {
     updateApplicationsData();
+    saveToLocalStorage(); // Save settings changes to localStorage
     renderApplications();
     updateFilterOptions();
     hasUnsavedChanges = true;
     closeSettings();
+}
+
+function clearLocalData() {
+    const confirmMessage = 'Are you sure you want to clear all locally stored data?\n\nThis will:\n- Remove all applications from browser storage\n- Reset settings to defaults\n- Keep your current session intact\n\nThis action cannot be undone. Consider exporting your data first.';
+    
+    if (confirm(confirmMessage)) {
+        if (clearLocalStorage()) {
+            alert('Local data cleared successfully!\n\nYour current session data is still intact. Refresh the page to start with default settings, or continue working with your current data.');
+        } else {
+            alert('Failed to clear local data. Please try again.');
+        }
+    }
+}
+
+// Auto-save indicator functions
+function showSaveIndicator() {
+    const indicator = document.getElementById('autoSaveIndicator');
+    if (indicator) {
+        indicator.textContent = '💾 Saving...';
+        indicator.style.color = '#2563eb';
+    }
+}
+
+function showSavedIndicator() {
+    const indicator = document.getElementById('autoSaveIndicator');
+    if (indicator) {
+        indicator.textContent = '✅ Saved';
+        indicator.style.color = '#16a34a';
+        
+        // Hide the indicator after 2 seconds
+        setTimeout(() => {
+            if (indicator) {
+                indicator.textContent = '';
+            }
+        }, 2000);
+    }
+}
+
+function showWelcomeMessage() {
+    setTimeout(() => {
+        const indicator = document.getElementById('autoSaveIndicator');
+        if (indicator) {
+            indicator.textContent = '🎉 Welcome! Your data will be saved automatically';
+            indicator.style.color = '#059669';
+            
+            setTimeout(() => {
+                if (indicator && indicator.textContent.includes('Welcome')) {
+                    indicator.textContent = '';
+                }
+            }, 5000);
+        }
+    }, 1000);
 }
 
 // Initialize the application when the DOM is loaded

@@ -13,7 +13,7 @@ const CURRENT_VERSION = '1.0.0';
 let applications = [];
 
 let config = {
-    referenceWriters: ['henrich', 'sandor', 'farbod', 'hoffman', 'leiblich', 'branden'],
+    referenceWriters: [],
     materials: ['cover', 'cv', 'research', 'teaching', 'diversity', 'pubs'],
     statusOptions: ['pending', 'in-progress', 'submitted'],
     customFields: [],
@@ -76,12 +76,21 @@ function loadFromLocalStorage() {
                 applications = parsedApplications;
                 config = {
                     // Ensure all required config properties exist with defaults
-                    referenceWriters: parsedConfig.referenceWriters || ['henrich', 'sandor', 'farbod', 'hoffman', 'leiblich', 'branden'],
+                    referenceWriters: parsedConfig.referenceWriters || [],
                     materials: parsedConfig.materials || ['cover', 'cv', 'research', 'teaching', 'diversity', 'pubs'],
                     statusOptions: parsedConfig.statusOptions || ['pending', 'in-progress', 'submitted'],
                     customFields: parsedConfig.customFields || [],
                     customChecklists: parsedConfig.customChecklists || []
                 };
+                
+                // If no reference writers in config but we have applications, extract them
+                if (config.referenceWriters.length === 0 && applications.length > 0) {
+                    const extractedWriters = extractReferenceWritersFromApplications(applications);
+                    if (extractedWriters.length > 0) {
+                        config.referenceWriters = extractedWriters;
+                        console.log(`Extracted ${extractedWriters.length} reference writers from existing applications:`, extractedWriters);
+                    }
+                }
                 
                 console.log(`Loaded ${applications.length} applications from localStorage (version: ${storedVersion || 'unknown'})`);
                 return true;
@@ -900,6 +909,22 @@ function exportData() {
     }
 }
 
+function extractReferenceWritersFromApplications(applications) {
+    const allWriters = new Set();
+    
+    applications.forEach(app => {
+        if (app.refs && typeof app.refs === 'object') {
+            Object.keys(app.refs).forEach(writer => {
+                if (writer && writer.trim()) {
+                    allWriters.add(writer.trim());
+                }
+            });
+        }
+    });
+    
+    return Array.from(allWriters).sort();
+}
+
 function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -951,6 +976,18 @@ function importData(event) {
                     } else {
                         // Add mode: merge settings intelligently
                         mergeSettings(data.settings);
+                    }
+                } else {
+                    // If no settings in import but we have applications, extract reference writers
+                    if (data.applications && data.applications.length > 0) {
+                        const extractedWriters = extractReferenceWritersFromApplications(data.applications);
+                        if (extractedWriters.length > 0) {
+                            // Merge with existing writers
+                            const newWriters = extractedWriters.filter(writer => 
+                                !config.referenceWriters.includes(writer)
+                            );
+                            config.referenceWriters = [...config.referenceWriters, ...newWriters];
+                        }
                     }
                 }
                 
@@ -1028,11 +1065,33 @@ function importData(event) {
                 
                 if (importMode === 'replace') {
                     if (data.applications) applications = data.applications;
-                    if (data.config) config = data.config;
+                    if (data.config) {
+                        config = data.config;
+                    } else {
+                        // No config in legacy file, extract reference writers from applications
+                        if (data.applications && data.applications.length > 0) {
+                            const extractedWriters = extractReferenceWritersFromApplications(data.applications);
+                            if (extractedWriters.length > 0) {
+                                config.referenceWriters = extractedWriters;
+                            }
+                        }
+                    }
                 } else {
                     // Add mode for legacy format
                     if (data.config) {
                         mergeSettings(data.config);
+                    } else {
+                        // No config in legacy file, extract reference writers from applications
+                        if (data.applications && data.applications.length > 0) {
+                            const extractedWriters = extractReferenceWritersFromApplications(data.applications);
+                            if (extractedWriters.length > 0) {
+                                // Merge with existing writers
+                                const newWriters = extractedWriters.filter(writer => 
+                                    !config.referenceWriters.includes(writer)
+                                );
+                                config.referenceWriters = [...config.referenceWriters, ...newWriters];
+                            }
+                        }
                     }
                     if (data.applications) {
                         // Filter out duplicates for legacy format too

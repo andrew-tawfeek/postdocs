@@ -324,6 +324,42 @@
             color: #6b7280;
         }
 
+        .progress-item.optional {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .custom-checkbox {
+            width: 1rem;
+            height: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.125rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: white;
+        }
+
+        .custom-checkbox.checked {
+            background-color: #16a34a;
+            color: white;
+        }
+
+        .custom-checkbox.checked::after {
+            content: '✓';
+        }
+
+        .custom-checkbox.optional {
+            background-color: #eab308;
+            color: white;
+        }
+
+        .custom-checkbox.optional::after {
+            content: '~';
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -415,6 +451,7 @@
             border-radius: 0.25rem;
             cursor: pointer;
             font-size: 0.875rem;
+            user-select: none;
         }
 
         .checkbox-label:hover {
@@ -626,17 +663,23 @@
             applications = applications.map(app => {
                 const refs = {};
                 config.referenceWriters.forEach(writer => {
-                    refs[writer] = app.refs && app.refs[writer] ? app.refs[writer] : false;
+                    // Preserve existing triple-state values, default to false for new writers
+                    refs[writer] = app.refs && app.refs[writer] !== undefined ? app.refs[writer] : false;
                 });
                 const materials = {};
                 config.materials.forEach(material => {
-                    materials[material] = app.materials && app.materials[material] ? app.materials[material] : false;
+                    // Preserve existing triple-state values, default to false for new materials
+                    materials[material] = app.materials && app.materials[material] !== undefined ? app.materials[material] : false;
                 });
                 const customChecklistValues = {};
                 config.customChecklists.forEach(checklist => {
                     customChecklistValues[checklist.id] = customChecklistValues[checklist.id] || {};
                     checklist.items.forEach(item => {
-                        customChecklistValues[checklist.id][item] = app.customChecklistValues && app.customChecklistValues[checklist.id] && app.customChecklistValues[checklist.id][item] ? app.customChecklistValues[checklist.id][item] : false;
+                        // Preserve existing triple-state values, default to false for new items
+                        customChecklistValues[checklist.id][item] = app.customChecklistValues && 
+                            app.customChecklistValues[checklist.id] && 
+                            app.customChecklistValues[checklist.id][item] !== undefined ? 
+                            app.customChecklistValues[checklist.id][item] : false;
                     });
                 });
                 return { ...app, refs, materials, customChecklistValues };
@@ -769,26 +812,44 @@
             let html = '';
 
             if (config.referenceWriters.length > 0) {
-                const completed = Object.values(app.refs || {}).filter(Boolean).length;
+                const completed = Object.values(app.refs || {}).filter(val => val === true || val === 1).length;
+                const numRefsRequired = app.numRefs || 3; // Default to 3 if not specified
                 html += `
                     <div class="progress-section" style="background: #eff6ff;">
                         <div class="progress-header">
                             <span class="progress-title">Reference Letters</span>
-                            <span class="progress-count">${completed} / ${config.referenceWriters.length} submitted</span>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span class="progress-count">${completed} / ${config.referenceWriters.length} submitted</span>
+                                <span style="font-size: 0.75rem; color: #6366f1; background: #e0e7ff; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-weight: 500;">
+                                    ${numRefsRequired} needed
+                                </span>
+                            </div>
                         </div>
                         <div class="progress-items">
-                            ${config.referenceWriters.map(name => `
-                                <span class="progress-item ${app.refs && app.refs[name] ? 'complete' : 'incomplete'}">
-                                    ${app.refs && app.refs[name] ? '✓' : '○'} ${name}
-                                </span>
-                            `).join('')}
+                            ${config.referenceWriters.map(name => {
+                                const refValue = app.refs && app.refs[name];
+                                let itemClass = 'incomplete';
+                                let icon = '○';
+                                
+                                if (refValue === true || refValue === 1) {
+                                    itemClass = 'complete';
+                                    icon = '✓';
+                                } else if (refValue === 2 || refValue === 'optional') {
+                                    itemClass = 'optional';
+                                    icon = '~';
+                                }
+                                
+                                return `<span class="progress-item ${itemClass}">
+                                    ${icon} ${name}
+                                </span>`;
+                            }).join('')}
                         </div>
                     </div>
                 `;
             }
 
             if (config.materials.length > 0) {
-                const completed = Object.values(app.materials || {}).filter(Boolean).length;
+                const completed = Object.values(app.materials || {}).filter(val => val === true || val === 1).length;
                 html += `
                     <div class="progress-section" style="background: #f3e8ff;">
                         <div class="progress-header">
@@ -796,11 +857,23 @@
                             <span class="progress-count">${completed} / ${config.materials.length} ready</span>
                         </div>
                         <div class="progress-items">
-                            ${config.materials.map(name => `
-                                <span class="progress-item ${app.materials && app.materials[name] ? 'complete' : 'incomplete'}">
-                                    ${app.materials && app.materials[name] ? '✓' : '○'} ${name === 'cv' ? 'CV' : name}
-                                </span>
-                            `).join('')}
+                            ${config.materials.map(name => {
+                                const materialValue = app.materials && app.materials[name];
+                                let itemClass = 'incomplete';
+                                let icon = '○';
+                                
+                                if (materialValue === true || materialValue === 1) {
+                                    itemClass = 'complete';
+                                    icon = '✓';
+                                } else if (materialValue === 2 || materialValue === 'optional') {
+                                    itemClass = 'optional';
+                                    icon = '~';
+                                }
+                                
+                                return `<span class="progress-item ${itemClass}">
+                                    ${icon} ${name === 'cv' ? 'CV' : name}
+                                </span>`;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -808,7 +881,7 @@
 
             config.customChecklists.forEach(checklist => {
                 const values = app.customChecklistValues && app.customChecklistValues[checklist.id] || {};
-                const completed = Object.values(values).filter(Boolean).length;
+                const completed = Object.values(values).filter(val => val === true || val === 1).length;
                 html += `
                     <div class="progress-section" style="background: #fef3c7;">
                         <div class="progress-header">
@@ -816,11 +889,23 @@
                             <span class="progress-count">${completed} / ${checklist.items.length} complete</span>
                         </div>
                         <div class="progress-items">
-                            ${checklist.items.map(item => `
-                                <span class="progress-item ${values[item] ? 'complete' : 'incomplete'}">
-                                    ${values[item] ? '✓' : '○'} ${item}
-                                </span>
-                            `).join('')}
+                            ${checklist.items.map(item => {
+                                const itemValue = values[item];
+                                let itemClass = 'incomplete';
+                                let icon = '○';
+                                
+                                if (itemValue === true || itemValue === 1) {
+                                    itemClass = 'complete';
+                                    icon = '✓';
+                                } else if (itemValue === 2 || itemValue === 'optional') {
+                                    itemClass = 'optional';
+                                    icon = '~';
+                                }
+                                
+                                return `<span class="progress-item ${itemClass}">
+                                    ${icon} ${item}
+                                </span>`;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -966,12 +1051,23 @@
                     <div class="form-group">
                         <label class="form-label">Reference Letters</label>
                         <div class="checkbox-group">
-                            ${config.referenceWriters.map(ref => `
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="${isNew ? 'new' : 'edit'}-ref-${ref}" ${app.refs && app.refs[ref] ? 'checked' : ''}>
-                                    <span style="text-transform: capitalize;">${ref}</span>
-                                </label>
-                            `).join('')}
+                            ${config.referenceWriters.map(ref => {
+                                const refValue = app.refs && app.refs[ref];
+                                let checkedState = '';
+                                let displayText = ref;
+                                
+                                if (refValue === true || refValue === 1) {
+                                    checkedState = 'checked';
+                                } else if (refValue === 2 || refValue === 'optional') {
+                                    displayText = `${ref} (optional)`;
+                                }
+                                
+                                return `<label class="checkbox-label" onclick="toggleTripleState('${isNew ? 'new' : 'edit'}-ref-${ref}', this, event)">
+                                    <input type="hidden" id="${isNew ? 'new' : 'edit'}-ref-${ref}" value="${refValue || 0}">
+                                    <span class="custom-checkbox ${refValue === 2 || refValue === 'optional' ? 'optional' : (refValue === true || refValue === 1 ? 'checked' : '')}"></span>
+                                    <span style="text-transform: capitalize;">${displayText}</span>
+                                </label>`;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -982,12 +1078,20 @@
                     <div class="form-group">
                         <label class="form-label">Application Materials</label>
                         <div class="checkbox-group">
-                            ${config.materials.map(material => `
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="${isNew ? 'new' : 'edit'}-material-${material}" ${app.materials && app.materials[material] ? 'checked' : ''}>
-                                    <span style="text-transform: capitalize;">${material === 'cv' ? 'CV' : material}</span>
-                                </label>
-                            `).join('')}
+                            ${config.materials.map(material => {
+                                const materialValue = app.materials && app.materials[material];
+                                let displayText = material === 'cv' ? 'CV' : material;
+                                
+                                if (materialValue === 2 || materialValue === 'optional') {
+                                    displayText += ' (optional)';
+                                }
+                                
+                                return `<label class="checkbox-label" onclick="toggleTripleState('${isNew ? 'new' : 'edit'}-material-${material}', this, event)">
+                                    <input type="hidden" id="${isNew ? 'new' : 'edit'}-material-${material}" value="${materialValue || 0}">
+                                    <span class="custom-checkbox ${materialValue === 2 || materialValue === 'optional' ? 'optional' : (materialValue === true || materialValue === 1 ? 'checked' : '')}"></span>
+                                    <span style="text-transform: capitalize;">${displayText}</span>
+                                </label>`;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -999,12 +1103,20 @@
                     <div class="form-group">
                         <label class="form-label">${checklist.name}</label>
                         <div class="checkbox-group">
-                            ${checklist.items.map(item => `
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="${isNew ? 'new' : 'edit'}-checklist-${checklist.id}-${item}" ${values[item] ? 'checked' : ''}>
-                                    <span>${item}</span>
-                                </label>
-                            `).join('')}
+                            ${checklist.items.map(item => {
+                                const itemValue = values[item];
+                                let displayText = item;
+                                
+                                if (itemValue === 2 || itemValue === 'optional') {
+                                    displayText += ' (optional)';
+                                }
+                                
+                                return `<label class="checkbox-label" onclick="toggleTripleState('${isNew ? 'new' : 'edit'}-checklist-${checklist.id}-${item}', this, event)">
+                                    <input type="hidden" id="${isNew ? 'new' : 'edit'}-checklist-${checklist.id}-${item}" value="${itemValue || 0}">
+                                    <span class="custom-checkbox ${itemValue === 2 || itemValue === 'optional' ? 'optional' : (itemValue === true || itemValue === 1 ? 'checked' : '')}"></span>
+                                    <span>${displayText}</span>
+                                </label>`;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -1021,6 +1133,33 @@
         function cancelEdit() {
             editingId = null;
             renderApplications();
+        }
+
+        function toggleTripleState(inputId, labelElement, event) {
+            if (event) event.preventDefault();
+            
+            const input = document.getElementById(inputId);
+            const checkbox = labelElement.querySelector('.custom-checkbox');
+            const textSpan = labelElement.querySelector('span:last-child');
+            
+            let currentValue = parseInt(input.value) || 0;
+            let newValue = (currentValue + 1) % 3;
+            
+            input.value = newValue;
+            
+            // Update visual state
+            checkbox.className = 'custom-checkbox';
+            let baseText = textSpan.textContent.replace(' (optional)', '');
+            
+            if (newValue === 1) {
+                checkbox.classList.add('checked');
+                textSpan.textContent = baseText;
+            } else if (newValue === 2) {
+                checkbox.classList.add('optional');
+                textSpan.textContent = baseText + ' (optional)';
+            } else {
+                textSpan.textContent = baseText;
+            }
         }
 
         function deleteApplication(id) {
@@ -1059,13 +1198,23 @@
             };
             
             config.referenceWriters.forEach(ref => {
-                const checkbox = document.getElementById(`${prefix}-ref-${ref}`);
-                if (checkbox) data.refs[ref] = checkbox.checked;
+                const input = document.getElementById(`${prefix}-ref-${ref}`);
+                if (input) {
+                    const value = parseInt(input.value) || 0;
+                    if (value === 1) data.refs[ref] = true;
+                    else if (value === 2) data.refs[ref] = 'optional';
+                    else data.refs[ref] = false;
+                }
             });
             
             config.materials.forEach(material => {
-                const checkbox = document.getElementById(`${prefix}-material-${material}`);
-                if (checkbox) data.materials[material] = checkbox.checked;
+                const input = document.getElementById(`${prefix}-material-${material}`);
+                if (input) {
+                    const value = parseInt(input.value) || 0;
+                    if (value === 1) data.materials[material] = true;
+                    else if (value === 2) data.materials[material] = 'optional';
+                    else data.materials[material] = false;
+                }
             });
             
             config.customFields.forEach(field => {
@@ -1076,8 +1225,13 @@
             config.customChecklists.forEach(checklist => {
                 data.customChecklistValues[checklist.id] = {};
                 checklist.items.forEach(item => {
-                    const checkbox = document.getElementById(`${prefix}-checklist-${checklist.id}-${item}`);
-                    if (checkbox) data.customChecklistValues[checklist.id][item] = checkbox.checked;
+                    const input = document.getElementById(`${prefix}-checklist-${checklist.id}-${item}`);
+                    if (input) {
+                        const value = parseInt(input.value) || 0;
+                        if (value === 1) data.customChecklistValues[checklist.id][item] = true;
+                        else if (value === 2) data.customChecklistValues[checklist.id][item] = 'optional';
+                        else data.customChecklistValues[checklist.id][item] = false;
+                    }
                 });
             });
             

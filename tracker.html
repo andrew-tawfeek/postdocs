@@ -1472,13 +1472,18 @@
                             if (importMode === 'replace') {
                                 applications = importedApps;
                             } else {
-                                // Add mode: merge applications with new IDs to avoid conflicts
+                                // Add mode: filter out duplicates and merge applications with new IDs
+                                const { uniqueApps, duplicateCount } = filterDuplicateApplications(importedApps, applications);
+                                
                                 const maxExistingId = applications.length > 0 ? Math.max(...applications.map(a => a.id)) : 0;
-                                const appsToAdd = importedApps.map((app, index) => ({
+                                const appsToAdd = uniqueApps.map((app, index) => ({
                                     ...app,
                                     id: maxExistingId + index + 1
                                 }));
                                 applications = [...applications, ...appsToAdd];
+                                
+                                // Store duplicate info for the alert message
+                                window.importDuplicateInfo = duplicateCount;
                             }
                         }
                         
@@ -1487,7 +1492,29 @@
                             `${data.exportInfo?.totalApplications || 0} imported (${applications.length} total)` :
                             `${data.exportInfo?.totalApplications || applications.length}`;
                         
-                        alert(`Data imported successfully! (${modeText})\nFormat: ${data.fileFormat.version}\nApplications: ${totalApps}\nExported: ${data.exportInfo?.exportDate ? new Date(data.exportInfo.exportDate).toLocaleDateString() : 'Unknown'}`);
+                        // Include duplicate information in the message
+                        let duplicateMessage = '';
+                        if (importMode === 'add' && window.importDuplicateInfo) {
+                            const dupInfo = window.importDuplicateInfo;
+                            if (dupInfo.found > 0) {
+                                duplicateMessage = `\n\nDuplicates skipped: ${dupInfo.found}`;
+                                if (dupInfo.details.length > 0 && dupInfo.details.length <= 3) {
+                                    duplicateMessage += '\nSkipped applications:';
+                                    dupInfo.details.forEach(detail => {
+                                        duplicateMessage += `\n- ${detail.school}: ${detail.position}`;
+                                    });
+                                } else if (dupInfo.details.length > 3) {
+                                    duplicateMessage += '\nFirst 3 skipped:';
+                                    dupInfo.details.slice(0, 3).forEach(detail => {
+                                        duplicateMessage += `\n- ${detail.school}: ${detail.position}`;
+                                    });
+                                    duplicateMessage += `\n... and ${dupInfo.details.length - 3} more`;
+                                }
+                            }
+                            delete window.importDuplicateInfo;
+                        }
+                        
+                        alert(`Data imported successfully! (${modeText})\nFormat: ${data.fileFormat.version}\nApplications: ${totalApps}\nExported: ${data.exportInfo?.exportDate ? new Date(data.exportInfo.exportDate).toLocaleDateString() : 'Unknown'}${duplicateMessage}`);
                     } 
                     // Backward compatibility with old format
                     else {
@@ -1502,17 +1529,46 @@
                                 mergeSettings(data.config);
                             }
                             if (data.applications) {
+                                // Filter out duplicates for legacy format too
+                                const { uniqueApps, duplicateCount } = filterDuplicateApplications(data.applications, applications);
+                                
                                 const maxExistingId = applications.length > 0 ? Math.max(...applications.map(a => a.id)) : 0;
-                                const appsToAdd = data.applications.map((app, index) => ({
+                                const appsToAdd = uniqueApps.map((app, index) => ({
                                     ...app,
                                     id: maxExistingId + index + 1
                                 }));
                                 applications = [...applications, ...appsToAdd];
+                                
+                                // Store duplicate info for the alert message
+                                window.importDuplicateInfo = duplicateCount;
                             }
                         }
                         
                         const modeText = importMode === 'add' ? ' (added to existing data)' : '';
-                        alert(`Data imported successfully! (Legacy format${modeText})`);
+                        
+                        // Include duplicate information for legacy format too
+                        let duplicateMessage = '';
+                        if (importMode === 'add' && window.importDuplicateInfo) {
+                            const dupInfo = window.importDuplicateInfo;
+                            if (dupInfo.found > 0) {
+                                duplicateMessage = `\n\nDuplicates skipped: ${dupInfo.found}`;
+                                if (dupInfo.details.length > 0 && dupInfo.details.length <= 3) {
+                                    duplicateMessage += '\nSkipped applications:';
+                                    dupInfo.details.forEach(detail => {
+                                        duplicateMessage += `\n- ${detail.school}: ${detail.position}`;
+                                    });
+                                } else if (dupInfo.details.length > 3) {
+                                    duplicateMessage += '\nFirst 3 skipped:';
+                                    dupInfo.details.slice(0, 3).forEach(detail => {
+                                        duplicateMessage += `\n- ${detail.school}: ${detail.position}`;
+                                    });
+                                    duplicateMessage += `\n... and ${dupInfo.details.length - 3} more`;
+                                }
+                            }
+                            delete window.importDuplicateInfo;
+                        }
+                        
+                        alert(`Data imported successfully! (Legacy format${modeText})${duplicateMessage}`);
                     }
                     
                     updateApplicationsData();
@@ -1533,6 +1589,47 @@
             
             reader.readAsText(file);
             event.target.value = '';
+        }
+
+        function isDuplicateApplication(existingApp, newApp) {
+            // Compare key fields to determine if applications are duplicates
+            // We'll check school, position, title, location, deadline, and status
+            return existingApp.school === newApp.school &&
+                   existingApp.position === newApp.position &&
+                   existingApp.title === newApp.title &&
+                   existingApp.location === newApp.location &&
+                   existingApp.deadline === newApp.deadline &&
+                   existingApp.status === newApp.status &&
+                   existingApp.contact === newApp.contact &&
+                   existingApp.connections === newApp.connections &&
+                   existingApp.link === newApp.link &&
+                   existingApp.comments === newApp.comments;
+        }
+
+        function filterDuplicateApplications(importedApps, existingApps) {
+            const uniqueApps = [];
+            const duplicateCount = {
+                found: 0,
+                details: []
+            };
+
+            importedApps.forEach(importedApp => {
+                const isDuplicate = existingApps.some(existingApp => 
+                    isDuplicateApplication(existingApp, importedApp)
+                );
+                
+                if (isDuplicate) {
+                    duplicateCount.found++;
+                    duplicateCount.details.push({
+                        school: importedApp.school,
+                        position: importedApp.position
+                    });
+                } else {
+                    uniqueApps.push(importedApp);
+                }
+            });
+
+            return { uniqueApps, duplicateCount };
         }
 
         function mergeSettings(importedSettings) {

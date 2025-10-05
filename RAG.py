@@ -181,3 +181,10 @@ def json():
 #ask("What is the full list of required items?",2)
 #ask("Do I need a host professor/sponsor?")
 
+
+
+# just in a seperate ipynb do
+
+#from RAG import *
+#add_urls(["url1","url2","url3"]) or load_embeddings()
+#json()

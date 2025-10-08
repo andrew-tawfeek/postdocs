@@ -551,6 +551,13 @@ function renderFormFields(app, isNew) {
     `;
 }
 
+// Helper function to convert stored checkbox values to numeric values for form rendering
+function getNumericCheckboxValue(value) {
+    if (value === true || value === 1) return 1;
+    if (value === 2 || value === 'optional') return 2;
+    return 0;
+}
+
 function renderCheckboxSections(app, isNew) {
     let html = '';
     
@@ -561,6 +568,7 @@ function renderCheckboxSections(app, isNew) {
                 <div class="checkbox-group">
                     ${config.referenceWriters.map(ref => {
                         const refValue = app.refs && app.refs[ref];
+                        const numericValue = getNumericCheckboxValue(refValue);
                         let checkedState = '';
                         let displayText = ref;
                         
@@ -571,7 +579,7 @@ function renderCheckboxSections(app, isNew) {
                         }
                         
                         return `<label class="checkbox-label" onclick="toggleTripleState('${isNew ? 'new' : 'edit'}-ref-${ref}', this, event)">
-                            <input type="hidden" id="${isNew ? 'new' : 'edit'}-ref-${ref}" value="${refValue || 0}">
+                            <input type="hidden" id="${isNew ? 'new' : 'edit'}-ref-${ref}" value="${numericValue}">
                             <span class="custom-checkbox ${refValue === 2 || refValue === 'optional' ? 'optional' : (refValue === true || refValue === 1 ? 'checked' : '')}"></span>
                             <span style="text-transform: capitalize;">${displayText}</span>
                         </label>`;
@@ -588,6 +596,7 @@ function renderCheckboxSections(app, isNew) {
                 <div class="checkbox-group">
                     ${config.materials.map(material => {
                         const materialValue = app.materials && app.materials[material];
+                        const numericValue = getNumericCheckboxValue(materialValue);
                         let displayText = material === 'cv' ? 'CV' : material;
                         
                         if (materialValue === 2 || materialValue === 'optional') {
@@ -595,7 +604,7 @@ function renderCheckboxSections(app, isNew) {
                         }
                         
                         return `<label class="checkbox-label" onclick="toggleTripleState('${isNew ? 'new' : 'edit'}-material-${material}', this, event)">
-                            <input type="hidden" id="${isNew ? 'new' : 'edit'}-material-${material}" value="${materialValue || 0}">
+                            <input type="hidden" id="${isNew ? 'new' : 'edit'}-material-${material}" value="${numericValue}">
                             <span class="custom-checkbox ${materialValue === 2 || materialValue === 'optional' ? 'optional' : (materialValue === true || materialValue === 1 ? 'checked' : '')}"></span>
                             <span style="text-transform: capitalize;">${displayText}</span>
                         </label>`;
@@ -613,6 +622,7 @@ function renderCheckboxSections(app, isNew) {
                 <div class="checkbox-group">
                     ${checklist.items.map(item => {
                         const itemValue = values[item];
+                        const numericValue = getNumericCheckboxValue(itemValue);
                         let displayText = item;
                         
                         if (itemValue === 2 || itemValue === 'optional') {
@@ -620,7 +630,7 @@ function renderCheckboxSections(app, isNew) {
                         }
                         
                         return `<label class="checkbox-label" onclick="toggleTripleState('${isNew ? 'new' : 'edit'}-checklist-${checklist.id}-${item}', this, event)">
-                            <input type="hidden" id="${isNew ? 'new' : 'edit'}-checklist-${checklist.id}-${item}" value="${itemValue || 0}">
+                            <input type="hidden" id="${isNew ? 'new' : 'edit'}-checklist-${checklist.id}-${item}" value="${numericValue}">
                             <span class="custom-checkbox ${itemValue === 2 || itemValue === 'optional' ? 'optional' : (itemValue === true || itemValue === 1 ? 'checked' : '')}"></span>
                             <span>${displayText}</span>
                         </label>`;

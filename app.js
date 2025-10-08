@@ -504,6 +504,10 @@ function renderFormFields(app, isNew) {
                 </select>
             </div>
             <div class="form-group">
+                <label class="form-label">Required References</label>
+                <input type="number" class="form-input" id="${isNew ? 'new' : 'edit'}-numrefs" value="${app.numRefs || 3}" min="0" max="10">
+            </div>
+            <div class="form-group">
                 <label class="form-label">Contact Email</label>
                 <input type="email" class="form-input" id="${isNew ? 'new' : 'edit'}-contact" value="${app.contact || ''}">
             </div>
@@ -693,6 +697,7 @@ function getFormData(prefix) {
         connections: document.getElementById(`${prefix}-connections`).value,
         link: document.getElementById(`${prefix}-link`).value,
         comments: document.getElementById(`${prefix}-comments`).value,
+        numRefs: parseInt(document.getElementById(`${prefix}-numrefs`).value) || 3,
         refs: {},
         materials: {},
         customFieldValues: {},
@@ -787,6 +792,7 @@ function showAddForm() {
         connections: '',
         link: '',
         comments: '',
+        numRefs: 3,
         refs,
         materials,
         customFieldValues,
@@ -812,8 +818,7 @@ function addApplication() {
     // Ensure all required properties are present
     const newApp = {
         ...formData,
-        id: newId,
-        numRefs: 3  // Add the missing numRefs property
+        id: newId
     };
     
     applications.push(newApp);
